@@ -213,7 +213,7 @@ timer_interrupt:
     unlock_other:
         la $t1 unlock_cnm
         lw $t1 0($t1)
-        bne $t1 $0 choose_target
+        beq $t1 $0 choose_target
         j target_unlock
         
     choose_target:
