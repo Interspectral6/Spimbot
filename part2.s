@@ -22,7 +22,6 @@ NUM_BUNNIES_CARRIED     = 0xffff0050
 SEARCH_BUNNIES          = 0xffff0054
 CATCH_BUNNY             = 0xffff0058
 PUT_BUNNIES_IN_PLAYPEN  = 0xffff005c
-LOCK_PLAYPEN            = 0xffff0048
 
 PLAYPEN_LOCATION        = 0xffff0044
 LOCK_PLAYPEN            = 0xffff0048
@@ -181,6 +180,9 @@ interrupt_dispatch:                 # Interrupt:
     and     $a0 $k0 REQUEST_PUZZLE_INT_MASK
     bne     $a0 0 request_puzzle_interrupt
 
+    and     $a0 $k0 BUNNY_MOVE_INT_MASK
+    bne     $a0 0 bunny_move_interrupt
+
     li      $v0, PRINT_STRING       # Unhandled interrupt types
     la      $a0, unhandled_str
     syscall
@@ -197,6 +199,10 @@ bonk_interrupt:
     li $t0 10
     sw $t0 VELOCITY                
     j interrupt_dispatch 
+
+bunny_move_interrupt:
+    sw      $0, BUNNY_MOVE_ACK
+    j       choose_target
 
 playpen_unlock_interrupt:
     sw      $0, PLAYPEN_UNLOCK_ACK
