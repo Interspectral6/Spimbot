@@ -24,6 +24,9 @@ CATCH_BUNNY             = 0xffff0058
 PUT_BUNNIES_IN_PLAYPEN  = 0xffff005c
 
 PLAYPEN_LOCATION        = 0xffff0044
+LOCK_PLAYPEN            = 0xffff0048
+UNLOCKER_PLAY           = 0xffff004c
+PLAYPEN_OTHER_LOCATION  = 0xffff00dc
 
 SCORES_REQUEST          = 0xffff1018
 
@@ -55,6 +58,9 @@ puzzle_data: .space 1036
 solution: .space 256
 .align 2
 bunnies_data: .space 484
+.align 2
+unlock_cnm: .byte 1
+
 
 .text
 main:
@@ -186,7 +192,12 @@ bonk_interrupt:
 timer_interrupt:
     sw      $0, TIMER_ACK
     #Fill in your timer interrupt code here
-
+    
+    unlock_other:
+        lw $t1 unlock_cnm
+        bne $t1 $0 choose_target
+        j target_unlock
+        
     choose_target:
         lw $t1 NUM_BUNNIES_CARRIED
         bge $t1 5 target_playpen
@@ -195,6 +206,12 @@ timer_interrupt:
         sw $t2 SEARCH_BUNNIES
         lw $t4 4($t2)
         lw $t5 8($t2)
+        j align_x
+
+    target_unlock:
+        lw $t2 PLAYPEN_OTHER_LOCATION
+        srl $t4 $t2 16
+        and $t5 $t2 0xffff
         j align_x
 
     target_playpen:
@@ -239,12 +256,20 @@ timer_interrupt:
         j interrupt_dispatch
 
     act:
+        lw $t1 unlock_cnm
+        bne $t1 $0 unlock_playpen_act
         lw $t1 NUM_BUNNIES_CARRIED
         bge $t1 5 do_deposit
         sw $0 CATCH_BUNNY    
         j act_done
     do_deposit:
         sw $t1 PUT_BUNNIES_IN_PLAYPEN 
+        j act_done
+    unlock_playpen_act:
+        li $t2, 1
+        sw $t2, LOCK_PLAYPEN
+        sw $0, unlock_cnm
+        j act_done
 
     act_done:
         j choose_target
