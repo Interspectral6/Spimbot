@@ -286,7 +286,8 @@ timer_interrupt:
         j interrupt_dispatch
 
     act:
-        lb $t1 unlock_cnm
+        la $t1 unlock_cnm
+        lb $t1 0($t1)
         bne $t1 $0 unlock_playpen_act
 
         la $t1 playpen_unlocked
