@@ -43,7 +43,7 @@ BUNNY_MOVE_ACK          = 0xffff00e8  ## Bunny Move
 EX_CARRY_LIMIT_INT_MASK = 0x4000      ## Exceeding Carry Limit
 EX_CARRY_LIMIT_ACK      = 0xffff002c  ## Exceeding Carry Limit
 
-PLAYPEN_UNLOCK_MASK     = 0x2000
+PLAYPEN_UNLOCK_INT_MASK = 0x2000
 PLAYPEN_UNLOCK_ACK      = 0xffff0028 
 
 MMIO_STATUS             = 0xffff204c
@@ -74,6 +74,8 @@ main:
         or      $t4     $t4     TIMER_INT_MASK
         or      $t4,    $t4,    BONK_INT_MASK             # enable bonk interrupt
         or      $t4,    $t4,    REQUEST_PUZZLE_INT_MASK   # enable puzzle interrupt
+        or      $t4,    $t4,    PLAYPEN_UNLOCK_INT_MASK
+        # or      $t4,    $t4,    BUNNY_MOVE_INT_MASK
         or      $t4,    $t4,    1 # global enable
         mtc0    $t4     $12
 
@@ -171,11 +173,11 @@ interrupt_dispatch:                 # Interrupt:
     and     $a0, $k0, BONK_INT_MASK     # is there a bonk interrupt?
     bne     $a0, 0, bonk_interrupt
 
+    and     $a0, $k0, PLAYPEN_UNLOCK_INT_MASK
+    bne     $a0, 0, playpen_unlock_interrupt
+
     and     $a0, $k0, TIMER_INT_MASK    # is there a timer interrupt?
     bne     $a0, 0, timer_interrupt
-
-    and     $a0, $k0, PLAYPEN_UNLOCK_MASK
-    bne     $a0, 0, playpen_unlock_interrupt
 
     and     $a0 $k0 REQUEST_PUZZLE_INT_MASK
     bne     $a0 0 request_puzzle_interrupt
