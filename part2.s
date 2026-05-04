@@ -25,7 +25,7 @@ PUT_BUNNIES_IN_PLAYPEN  = 0xffff005c
 
 PLAYPEN_LOCATION        = 0xffff0044
 LOCK_PLAYPEN            = 0xffff0048
-UNLOCKER_PLAY           = 0xffff004c
+UNLOCK_PLAYPEN          = 0xffff004c
 PLAYPEN_OTHER_LOCATION  = 0xffff00dc
 
 SCORES_REQUEST          = 0xffff1018
@@ -308,7 +308,7 @@ timer_interrupt:
         j act_done
     unlock_playpen_act:
         li $t2, 1
-        sw $t2, LOCK_PLAYPEN
+        sw $t2, UNLOCK_PLAYPEN
         la $t1 unlock_cnm
         sw $0, 0($t1)
         j act_done
