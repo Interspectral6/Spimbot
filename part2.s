@@ -286,10 +286,10 @@ timer_interrupt:
         j interrupt_dispatch
 
     act:
+        lb $t1 unlock_cnm
         bne $t1 $0 unlock_playpen_act
-        lw $t1 unlock_cnm
 
-        lb $t1 playpen_unlocked
+        la $t1 playpen_unlocked
         lb $t1 0($t1)
         beq $t1 1 do_deposit
         
