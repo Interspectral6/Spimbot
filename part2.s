@@ -22,6 +22,7 @@ NUM_BUNNIES_CARRIED     = 0xffff0050
 SEARCH_BUNNIES          = 0xffff0054
 CATCH_BUNNY             = 0xffff0058
 PUT_BUNNIES_IN_PLAYPEN  = 0xffff005c
+LOCK_PLAYPEN            = 0xffff0048
 
 PLAYPEN_LOCATION        = 0xffff0044
 LOCK_PLAYPEN            = 0xffff0048
@@ -43,6 +44,9 @@ BUNNY_MOVE_ACK          = 0xffff00e8  ## Bunny Move
 EX_CARRY_LIMIT_INT_MASK = 0x4000      ## Exceeding Carry Limit
 EX_CARRY_LIMIT_ACK      = 0xffff002c  ## Exceeding Carry Limit
 
+PLAYPEN_UNLOCK_MASK     = 0x2000
+PLAYPEN_UNLOCK_ACK      = 0xffff0028 
+
 MMIO_STATUS             = 0xffff204c
 
 .data
@@ -58,6 +62,8 @@ puzzle_data: .space 1036
 solution: .space 256
 .align 2
 bunnies_data: .space 484
+.align 2
+playpen_unlocked: .byte 0
 .align 2
 unlock_cnm: .byte 1
 
@@ -169,6 +175,9 @@ interrupt_dispatch:                 # Interrupt:
     and     $a0, $k0, TIMER_INT_MASK    # is there a timer interrupt?
     bne     $a0, 0, timer_interrupt
 
+    and     $a0, $k0, PLAYPEN_UNLOCK_MASK
+    bne     $a0, 0, playpen_unlock_interrupt
+
     and     $a0 $k0 REQUEST_PUZZLE_INT_MASK
     bne     $a0 0 request_puzzle_interrupt
 
@@ -189,16 +198,29 @@ bonk_interrupt:
     sw $t0 VELOCITY                
     j interrupt_dispatch 
 
+playpen_unlock_interrupt:
+    sw      $0, PLAYPEN_UNLOCK_ACK
+
+    la $t0 playpen_unlocked
+    li $t1 1
+    sb $t1 0($t0)
+    j choose_target
+
 timer_interrupt:
     sw      $0, TIMER_ACK
     #Fill in your timer interrupt code here
     
     unlock_other:
-        lw $t1 unlock_cnm
+        la $t1 unlock_cnm
+        lw $t1 0($t1)
         bne $t1 $0 choose_target
         j target_unlock
         
     choose_target:
+        la $t0 playpen_unlocked
+        lb $t1 0($t0)
+        beq $t1 1 target_playpen
+
         lw $t1 NUM_BUNNIES_CARRIED
         bge $t1 5 target_playpen
 
@@ -218,6 +240,8 @@ timer_interrupt:
         lw $t2 PLAYPEN_LOCATION
         srl $t4 $t2 16
         and $t5 $t2 0xffff
+
+    target_playpen_other:
 
     align_x:
         lw $t0 BOT_X
@@ -256,19 +280,30 @@ timer_interrupt:
         j interrupt_dispatch
 
     act:
-        lw $t1 unlock_cnm
         bne $t1 $0 unlock_playpen_act
+        lw $t1 unlock_cnm
+
+        lb $t1 playpen_unlocked
+        lb $t1 0($t1)
+        beq $t1 1 do_deposit
+        
         lw $t1 NUM_BUNNIES_CARRIED
         bge $t1 5 do_deposit
+        
         sw $0 CATCH_BUNNY    
         j act_done
     do_deposit:
         sw $t1 PUT_BUNNIES_IN_PLAYPEN 
+        sw $t1 LOCK_PLAYPEN
+        li $t0 0
+        la $t1 playpen_unlocked
+        sb $t0 0($t1)
         j act_done
     unlock_playpen_act:
         li $t2, 1
         sw $t2, LOCK_PLAYPEN
-        sw $0, unlock_cnm
+        la $t1 unlock_cnm
+        sw $0, 0($t1)
         j act_done
 
     act_done:
